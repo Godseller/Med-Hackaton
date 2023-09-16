@@ -1,6 +1,6 @@
 
 var client_id = Date.now()
-var connect = `ws://localhost:8000/ws/${client_id}`
+var connect = `ws://192.168.100.45:8000/ws/${client_id}`
 
 var dataChannelLog = document.getElementById('data-channel')
 // peer connection
