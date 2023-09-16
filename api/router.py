@@ -50,15 +50,12 @@ async def offer(params: Offer):
             await pc.close()
             pcs.discard(pc)
 
-    # open media source
-    # audio, video = create_local_tracks()
-
     @pc.on("track")
     def on_track(track):
 
         if track.kind == "video":
             pc.addTrack(
-                VideoTransformTrack(relay.subscribe(track), transform=params.video_transform)
+                VideoTransformTrack(relay.subscribe(track))
             )
         
         @track.on("ended")

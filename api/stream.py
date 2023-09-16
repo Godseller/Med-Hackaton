@@ -2,9 +2,6 @@ from aiortc import MediaStreamTrack
 from av import VideoFrame
 import cv2
 from .connectionmanager import manager
-from aiortc import VideoStreamTrack
-
-
 
 
 class VideoTransformTrack(MediaStreamTrack):
@@ -14,10 +11,9 @@ class VideoTransformTrack(MediaStreamTrack):
 
     kind = "video"
 
-    def __init__(self, track, transform):
+    def __init__(self, track):
         super().__init__()
         self.track = track
-        self.transform = transform
 
     async def recv(self):
         frame = await self.track.recv()
