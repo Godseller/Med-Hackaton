@@ -75,17 +75,17 @@ function negotiate() {
         //     offer.sdp = sdpFilterCodec('audio', codec, offer.sdp);
         // }
 
-        codec = document.getElementById('video-codec').value;
-        if (codec !== 'default') {
-            offer.sdp = sdpFilterCodec('video', codec, offer.sdp);
-        }
+        // codec = document.getElementById('video-codec').value;
+        // if (codec !== 'default') {
+        //     offer.sdp = sdpFilterCodec('video', codec, offer.sdp);
+        // }
 
         // document.getElementById('offer-sdp').textContent = offer.sdp;
         return fetch('/offer', {
             body: JSON.stringify({
                 sdp: offer.sdp,
                 type: offer.type,
-                video_transform: document.getElementById('video-transform').value
+                // video_transform: document.getElementById('video-transform').value
             }),
             headers: {
                 'Content-Type': 'application/json'
@@ -163,29 +163,51 @@ function start() {
     //         }
     //     };
     // }
-
-    var constraints = {
-        audio: false,
-        video: false
-    };
-
     if (document.getElementById('use-video').checked) {
-        var resolution = document.getElementById('video-resolution').value;
-        if (resolution) {
-            resolution = resolution.split('x');
-            constraints.video = {
-                width: parseInt(resolution[0], 0),
-                height: parseInt(resolution[1], 0)
+
+        var constraints = {
+            audio: false,
+            video: { facingMode: "user" }
+        };
+
+
+    }else{
+
+        var constraints = {
+                audio: false,
+                video: { facingMode: { exact: "environment" } }
             };
-        } else {
-            constraints.video = true;
-        }
     }
+
+   
+
+
+    // var constraints = {
+    //     audio: false,
+    //     video: { facingMode: { exact: "environment" } }
+    // };
+
+
+    // if (document.getElementById('use-video').checked) {
+        // var resolution = document.getElementById('video-resolution').value;
+        // if (resolution) {
+        //     resolution = resolution.split('x');
+        //     constraints.video = {
+        //         width: parseInt(resolution[0], 0),
+        //         height: parseInt(resolution[1], 0)
+        //     };
+        // } 
+        
+        
+        // else {
+        //     constraints.video = true;
+        // }
+    // }
     
 
-    if (constraints.video) {
+    // if (constraints.video) {
        
-        document.getElementById('media').style.display = 'block';
+        // document.getElementById('media').style.display = 'block';
      
         navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
             stream.getTracks().forEach(function(track) {
@@ -195,9 +217,9 @@ function start() {
         }, function(err) {
             alert('Could not acquire media: ' + err);
         });
-    } else {
-        negotiate();
-    }
+    // } else {
+    //     negotiate();
+    // }
 
     document.getElementById('stop').style.display = 'inline-block';
 }
@@ -231,62 +253,62 @@ function stop() {
     }, 500);
 }
 
-function sdpFilterCodec(kind, codec, realSdp) {
-    var allowed = []
-    var rtxRegex = new RegExp('a=fmtp:(\\d+) apt=(\\d+)\r$');
-    var codecRegex = new RegExp('a=rtpmap:([0-9]+) ' + escapeRegExp(codec))
-    var videoRegex = new RegExp('(m=' + kind + ' .*?)( ([0-9]+))*\\s*$')
+// function sdpFilterCodec(kind, codec, realSdp) {
+//     var allowed = []
+//     var rtxRegex = new RegExp('a=fmtp:(\\d+) apt=(\\d+)\r$');
+//     var codecRegex = new RegExp('a=rtpmap:([0-9]+) ' + escapeRegExp(codec))
+//     var videoRegex = new RegExp('(m=' + kind + ' .*?)( ([0-9]+))*\\s*$')
     
-    var lines = realSdp.split('\n');
+//     var lines = realSdp.split('\n');
 
-    var isKind = false;
-    for (var i = 0; i < lines.length; i++) {
-        if (lines[i].startsWith('m=' + kind + ' ')) {
-            isKind = true;
-        } else if (lines[i].startsWith('m=')) {
-            isKind = false;
-        }
+//     var isKind = false;
+//     for (var i = 0; i < lines.length; i++) {
+//         if (lines[i].startsWith('m=' + kind + ' ')) {
+//             isKind = true;
+//         } else if (lines[i].startsWith('m=')) {
+//             isKind = false;
+//         }
 
-        if (isKind) {
-            var match = lines[i].match(codecRegex);
-            if (match) {
-                allowed.push(parseInt(match[1]));
-            }
+//         if (isKind) {
+//             var match = lines[i].match(codecRegex);
+//             if (match) {
+//                 allowed.push(parseInt(match[1]));
+//             }
 
-            match = lines[i].match(rtxRegex);
-            if (match && allowed.includes(parseInt(match[2]))) {
-                allowed.push(parseInt(match[1]));
-            }
-        }
-    }
+//             match = lines[i].match(rtxRegex);
+//             if (match && allowed.includes(parseInt(match[2]))) {
+//                 allowed.push(parseInt(match[1]));
+//             }
+//         }
+//     }
 
-    var skipRegex = 'a=(fmtp|rtcp-fb|rtpmap):([0-9]+)';
-    var sdp = '';
+//     var skipRegex = 'a=(fmtp|rtcp-fb|rtpmap):([0-9]+)';
+//     var sdp = '';
 
-    isKind = false;
-    for (var i = 0; i < lines.length; i++) {
-        if (lines[i].startsWith('m=' + kind + ' ')) {
-            isKind = true;
-        } else if (lines[i].startsWith('m=')) {
-            isKind = false;
-        }
+//     isKind = false;
+//     for (var i = 0; i < lines.length; i++) {
+//         if (lines[i].startsWith('m=' + kind + ' ')) {
+//             isKind = true;
+//         } else if (lines[i].startsWith('m=')) {
+//             isKind = false;
+//         }
 
-        if (isKind) {
-            var skipMatch = lines[i].match(skipRegex);
-            if (skipMatch && !allowed.includes(parseInt(skipMatch[2]))) {
-                continue;
-            } else if (lines[i].match(videoRegex)) {
-                sdp += lines[i].replace(videoRegex, '$1 ' + allowed.join(' ')) + '\n';
-            } else {
-                sdp += lines[i] + '\n';
-            }
-        } else {
-            sdp += lines[i] + '\n';
-        }
-    }
+//         if (isKind) {
+//             var skipMatch = lines[i].match(skipRegex);
+//             if (skipMatch && !allowed.includes(parseInt(skipMatch[2]))) {
+//                 continue;
+//             } else if (lines[i].match(videoRegex)) {
+//                 sdp += lines[i].replace(videoRegex, '$1 ' + allowed.join(' ')) + '\n';
+//             } else {
+//                 sdp += lines[i] + '\n';
+//             }
+//         } else {
+//             sdp += lines[i] + '\n';
+//         }
+//     }
 
-    return sdp;
-}
+//     return sdp;
+// }
 
 function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
@@ -302,7 +324,6 @@ var client_id = Date.now()
 var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
 ws.onmessage = function(event) {
     var story = document.getElementById('story');
-    console.log("2222")
     story.value += event.data  + " ";
     if(story.selectionStart == story.selectionEnd) {
         story.scrollTop = story.scrollHeight;
