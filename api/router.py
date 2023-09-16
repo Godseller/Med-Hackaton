@@ -12,8 +12,6 @@ from api.connectionmanager import manager
 stream_router = APIRouter()
 pcs = set()
 
-
-
 templates = Jinja2Templates(directory = BASE_DIR +  "/templates")
 
 @stream_router.websocket("/ws/{client_id}")
