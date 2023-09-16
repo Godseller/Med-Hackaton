@@ -1,4 +1,4 @@
-<h1 align="center">✨ Free Parking Space ✨</h1>
+<h1 align="center">✨ Sign Language Detection ✨</h1>
 
 <p align="center">  
 <img src="https://img.shields.io/badge/python-3.11 -blueviolet.svg">
