@@ -1,6 +1,10 @@
 from aiortc import MediaStreamTrack
 from av import VideoFrame
 import cv2
+from .connectionmanager import manager
+from aiortc import VideoStreamTrack
+
+
 
 
 class VideoTransformTrack(MediaStreamTrack):
@@ -20,7 +24,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
     
         img = frame.to_ndarray(format="bgr24")
-
+        
 
         # Наш frame в переменной img ВСЕ ПРЕОБРАЗОВАНИЯ ДЕЛАЕМ ТУТ __________________---------------------___________________----------
         rows, cols, _ = img.shape
@@ -32,6 +36,10 @@ class VideoTransformTrack(MediaStreamTrack):
         img = cv2.warpAffine(img, M, (cols, rows))
 
 
+        # Распознаггый текст передать в браузер
+    
+        message = "Я точно знаю этот жест!"
+        await manager.broadcast(message)
 
 
         #___________________________----------------------_____________________---------------------__________________------------------________
@@ -42,3 +50,5 @@ class VideoTransformTrack(MediaStreamTrack):
         new_frame.time_base = frame.time_base
         return new_frame
   
+
+

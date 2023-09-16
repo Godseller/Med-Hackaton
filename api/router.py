@@ -16,18 +16,6 @@ pcs = set()
 
 templates = Jinja2Templates(directory = BASE_DIR +  "/templates")
 
-
-# @stream_router.websocket("/ws")
-# async def websocket_endpoint(websocket: WebSocket, client_id: int):
-#     await manager.connect(websocket, client_id)
-#     try:
-#         while True:
-#             data = await websocket.receive_json()
-#             websocket.data = data
-#             await manager.send_personal_message(f"You wrote: {data}", websocket)
-#     except WebSocketDisconnect:
-#         manager.disconnect(websocket,  client_id)
-
 @stream_router.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await manager.connect(websocket)

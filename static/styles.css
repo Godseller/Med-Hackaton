@@ -1,0 +1,27 @@
+
+.container{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+
+#media{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+}
+
+#video{
+    border: 1px solid black;
+    height: 40vh;
+    width: 95%;
+}
+
+
+#story{
+    width: 95%;
+}
+
+

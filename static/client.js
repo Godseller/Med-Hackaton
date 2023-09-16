@@ -1,8 +1,8 @@
 // get DOM elements
-var dataChannelLog = document.getElementById('data-channel'),
-    iceConnectionLog = document.getElementById('ice-connection-state'),
-    iceGatheringLog = document.getElementById('ice-gathering-state'),
-    signalingLog = document.getElementById('signaling-state');
+var dataChannelLog = document.getElementById('data-channel')
+    // iceConnectionLog = document.getElementById('ice-connection-state'),
+    // iceGatheringLog = document.getElementById('ice-gathering-state'),
+    // signalingLog = document.getElementById('signaling-state');
 
 // peer connection
 var pc = null;
@@ -15,27 +15,27 @@ function createPeerConnection() {
         sdpSemantics: 'unified-plan'
     };
 
-    if (document.getElementById('use-stun').checked) {
-        config.iceServers = [{urls: ['stun:stun.l.google.com:19302']}];
-    }
+    // if (document.getElementById('use-stun').checked) {
+    //     config.iceServers = [{urls: ['stun:stun.l.google.com:19302']}];
+    // }
 
     pc = new RTCPeerConnection(config);
 
     // register some listeners to help debugging
-    pc.addEventListener('icegatheringstatechange', function() {
-        iceGatheringLog.textContent += ' -> ' + pc.iceGatheringState;
-    }, false);
-    iceGatheringLog.textContent = pc.iceGatheringState;
+    // pc.addEventListener('icegatheringstatechange', function() {
+        // iceGatheringLog.textContent += ' -> ' + pc.iceGatheringState;
+    // }, false);
+    // iceGatheringLog.textContent = pc.iceGatheringState;
 
-    pc.addEventListener('iceconnectionstatechange', function() {
-        iceConnectionLog.textContent += ' -> ' + pc.iceConnectionState;
-    }, false);
-    iceConnectionLog.textContent = pc.iceConnectionState;
+    // pc.addEventListener('iceconnectionstatechange', function() {
+    //     iceConnectionLog.textContent += ' -> ' + pc.iceConnectionState;
+    // }, false);
+    // iceConnectionLog.textContent = pc.iceConnectionState;
 
-    pc.addEventListener('signalingstatechange', function() {
-        signalingLog.textContent += ' -> ' + pc.signalingState;
-    }, false);
-    signalingLog.textContent = pc.signalingState;
+    // pc.addEventListener('signalingstatechange', function() {
+    //     signalingLog.textContent += ' -> ' + pc.signalingState;
+    // }, false);
+    // signalingLog.textContent = pc.signalingState;
 
     // connect audio / video
     pc.addEventListener('track', function(evt) {
@@ -70,17 +70,17 @@ function negotiate() {
         var offer = pc.localDescription;
         var codec;
 
-        codec = document.getElementById('audio-codec').value;
-        if (codec !== 'default') {
-            offer.sdp = sdpFilterCodec('audio', codec, offer.sdp);
-        }
+        // codec = document.getElementById('audio-codec').value;
+        // if (codec !== 'default') {
+        //     offer.sdp = sdpFilterCodec('audio', codec, offer.sdp);
+        // }
 
         codec = document.getElementById('video-codec').value;
         if (codec !== 'default') {
             offer.sdp = sdpFilterCodec('video', codec, offer.sdp);
         }
 
-        document.getElementById('offer-sdp').textContent = offer.sdp;
+        // document.getElementById('offer-sdp').textContent = offer.sdp;
         return fetch('/offer', {
             body: JSON.stringify({
                 sdp: offer.sdp,
@@ -95,7 +95,7 @@ function negotiate() {
     }).then(function(response) {
         return response.json();
     }).then(function(answer) {
-        document.getElementById('answer-sdp').textContent = answer.sdp;
+        // document.getElementById('answer-sdp').textContent = answer.sdp;
         return pc.setRemoteDescription(answer);
     }).catch(function(e) {
         alert(e);
@@ -165,7 +165,7 @@ function start() {
     // }
 
     var constraints = {
-        audio: document.getElementById('use-audio').checked,
+        audio: false,
         video: false
     };
 
@@ -295,18 +295,22 @@ function escapeRegExp(string) {
 
 
 var client_id = Date.now()
-document.querySelector("#ws-id").textContent = client_id;
+
+
+
+
 var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
 ws.onmessage = function(event) {
-    var messages = document.getElementById('messages')
-    var message = document.createElement('li')
-    var content = document.createTextNode(event.data)
-    message.appendChild(content)
-    messages.appendChild(message)
+    var story = document.getElementById('story');
+    console.log("2222")
+    story.value += event.data  + " ";
+    if(story.selectionStart == story.selectionEnd) {
+        story.scrollTop = story.scrollHeight;
+     }
 };
-function sendMessage(event) {
-    var input = document.getElementById("messageText")
-    ws.send(input.value)
-    input.value = ''
-    event.preventDefault()
-}
+// function sendMessage(event) {
+//     var input = document.getElementById("messageText")
+//     ws.send(input.value)
+//     input.value = ''
+//     event.preventDefault()
+// }
