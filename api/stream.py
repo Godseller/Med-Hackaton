@@ -18,6 +18,7 @@ output_names = [output.name for output in session.get_outputs()]
 
 threshold = 0.5
 frame_interval = 2
+frame_waiting = window_size // 2
 mean = [123.675, 116.28, 103.53]
 std = [58.395, 57.12, 57.375]
 
@@ -56,7 +57,8 @@ def resize(im, new_shape=(224, 224)):
         im = cv2.resize(im, new_unpad, interpolation=cv2.INTER_LINEAR)
     top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
     left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(114, 114, 114))  # add border
+    im = cv2.copyMakeBorder(im, top, bottom, left, right,
+                            cv2.BORDER_CONSTANT, value=(114, 114, 114))  # add border
     return im
 
 
@@ -72,7 +74,9 @@ class VideoTransformTrack(MediaStreamTrack):
     def __init__(self, track):
         super().__init__()
         self.track = track
-        self.tensors_list = []
+        self.tensors_list_1 = []
+        self.tensors_list_2 = []
+        self.second_model_run = False
         self.frame_counter = 0
 
     async def recv(self):
@@ -84,27 +88,49 @@ class VideoTransformTrack(MediaStreamTrack):
 
         # Наш frame в переменной img ВСЕ ПРЕОБРАЗОВАНИЯ ДЕЛАЕМ ТУТ __________________---------------------___________________----------
         self.frame_counter += 1
-        if self.frame_counter == frame_interval:
+        if self.frame_counter % frame_interval == 0:
             image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             image = resize(image, (224, 224))
             image = (image - mean) / std
             image = np.transpose(image, [2, 0, 1])
-            self.tensors_list.append(image)
-            if len(self.tensors_list) == window_size:
-                print(datetime.now())
-                input_tensor = np.stack(self.tensors_list[: window_size], axis=1)[None][None]
-                outputs = session.run(output_names, {input_name: input_tensor.astype(np.float32)})[0]
+
+            self.tensors_list_1.append(image)
+
+            if self.second_model_run:
+                self.tensors_list_2.append(image)
+            
+            if len(self.tensors_list_1) == window_size:
+                print('Run first predict', datetime.now())
+                input_tensor = np.stack(self.tensors_list_1[: window_size], axis=1)[None][None]
+                self.model_1_outputs = session.run(output_names, {input_name: input_tensor.astype(np.float32)})[0]
+                self.tensors_list_1.clear()
+                print('Ready first predict', datetime.now())
+            
+            if len(self.tensors_list_2) == window_size:
+                print('Run second predict', datetime.now())
+                input_tensor = np.stack(self.tensors_list_2[: window_size], axis=1)[None][None]
+                self.model_2_outputs = session.run(output_names, {input_name: input_tensor.astype(np.float32)})[0]
+                self.tensors_list_2.clear()
+                print('Ready second predict', datetime.now())
+
+                print('Run total predict', datetime.now())
+                if self.model_1_outputs.max() > self.model_2_outputs.max():
+                    outputs = self.model_1_outputs 
+                else:
+                    outputs = self.model_2_outputs
+                
                 gloss = str(classes[outputs.argmax()])
                 if outputs.max() > threshold:
                     await manager.broadcast(gloss)
                     print(f'detected word: {gloss}')
-                    print(datetime.now())
+                    print('Ready total predict', datetime.now())
                 else:
                     await manager.broadcast('---')
                     print(f'no word')
-                    print(datetime.now())
-                self.tensors_list.clear()
-            self.frame_counter = 0
+                    print('Ready total predict', datetime.now())
+            
+            if self.frame_counter > frame_interval * frame_waiting:
+                self.second_model_run = True
 
 
         #___________________________----------------------_____________________---------------------__________________------------------________
