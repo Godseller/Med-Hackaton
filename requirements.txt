@@ -38,3 +38,5 @@ websockets==11.0.3
 yarl==1.9.2
 onnxruntime==1.14.1
 opencv-contrib-python==4.7.0.72
+claude_api==1.0.17
+python-dotenv== 1.0.0

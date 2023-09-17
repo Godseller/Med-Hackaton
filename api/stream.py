@@ -1,3 +1,4 @@
+import re
 from aiortc import MediaStreamTrack
 from av import VideoFrame
 import cv2
@@ -6,6 +7,10 @@ import onnxruntime as ort
 from constants import classes
 from .connectionmanager import manager
 from datetime import datetime
+
+import sys
+sys.path.insert(0, './claude')
+from claude.claudeapi import request_without_attachment
 
 
 ort.set_default_logger_severity(4)
@@ -72,7 +77,10 @@ class VideoTransformTrack(MediaStreamTrack):
     def __init__(self, track):
         super().__init__()
         self.track = track
-        self.tensors_list = []
+        self.tensors_list_1 = []
+        self.tensors_list_2 = []
+        self.symbol_list = []
+        self.second_model_run = False
         self.frame_counter = 0
 
     async def recv(self):
@@ -84,27 +92,66 @@ class VideoTransformTrack(MediaStreamTrack):
 
         # Наш frame в переменной img ВСЕ ПРЕОБРАЗОВАНИЯ ДЕЛАЕМ ТУТ __________________---------------------___________________----------
         self.frame_counter += 1
-        if self.frame_counter == frame_interval:
+        if self.frame_counter % frame_interval == 0:
             image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             image = resize(image, (224, 224))
             image = (image - mean) / std
             image = np.transpose(image, [2, 0, 1])
-            self.tensors_list.append(image)
-            if len(self.tensors_list) == window_size:
-                print(datetime.now())
-                input_tensor = np.stack(self.tensors_list[: window_size], axis=1)[None][None]
-                outputs = session.run(output_names, {input_name: input_tensor.astype(np.float32)})[0]
+
+            self.tensors_list_1.append(image)
+
+            if self.second_model_run:
+                self.tensors_list_2.append(image)
+            
+            if len(self.tensors_list_1) == window_size:
+                print('Run first predict', datetime.now())
+                input_tensor = np.stack(self.tensors_list_1[: window_size], axis=1)[None][None]
+                self.model_1_outputs = session.run(output_names, {input_name: input_tensor.astype(np.float32)})[0]
+                self.tensors_list_1.clear()
+                print('Ready first predict', datetime.now())
+            
+            if len(self.tensors_list_2) == window_size:
+                print('Run second predict', datetime.now())
+                input_tensor = np.stack(self.tensors_list_2[: window_size], axis=1)[None][None]
+                self.model_2_outputs = session.run(output_names, {input_name: input_tensor.astype(np.float32)})[0]
+                self.tensors_list_2.clear()
+                print('Ready second predict', datetime.now())
+
+                print('Run total predict', datetime.now())
+                if self.model_1_outputs.max() > self.model_2_outputs.max():
+                    outputs = self.model_1_outputs 
+                else:
+                    outputs = self.model_2_outputs
+                
                 gloss = str(classes[outputs.argmax()])
                 if outputs.max() > threshold:
                     await manager.broadcast(gloss)
                     print(f'detected word: {gloss}')
-                    print(datetime.now())
+                    print('Ready total predict', datetime.now())
+                    self.symbol_list.append(gloss)
                 else:
                     await manager.broadcast('---')
                     print(f'no word')
-                    print(datetime.now())
-                self.tensors_list.clear()
-            self.frame_counter = 0
+                    print('Ready total predict', datetime.now())
+                    self.symbol_list.append(True)
+                    if all(self.symbol_list.append[-3:]) == True:
+                        prompt_text = ' '.join(self.symbol_list.append)
+                        prompt = f'Ты специалист по нахождению смысла в переданных тебе словах и символах после перевода жестов глухонемых людей. Напиши пожалуйста по переданному набору текста только связное по смыслу предложение, то что имелось ввиду так, чтобы это не выглядело набором слов. Вот текст: "{prompt_text}"'
+                        chat_id = 123
+                        request_res = request_without_attachment(chat_id, prompt)
+                        reply_claude = request_res.result()
+                        if reply_claude is None:
+                            print('Что-то пошло не так c LLM')
+                            # await manager.broadcast(reply_claude)
+                        else:
+                            match = re.search(r'"([^"]+)"', reply_claude)
+                            if match:
+                                output_text = match.group(1)
+                                await manager.broadcast(output_text)
+                        self.symbol_list.clear()
+            
+            if self.frame_counter > frame_interval * frame_waiting:
+                self.second_model_run = True
 
 
         #___________________________----------------------_____________________---------------------__________________------------------________
@@ -114,6 +161,3 @@ class VideoTransformTrack(MediaStreamTrack):
         new_frame.pts = frame.pts
         new_frame.time_base = frame.time_base
         return new_frame
-  
-
-
