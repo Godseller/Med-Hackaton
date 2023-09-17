@@ -9,7 +9,7 @@ from datetime import datetime
 
 
 ort.set_default_logger_severity(4)
-session = ort.InferenceSession('./mvit32-2.onnx')
+session = ort.InferenceSession('./mvit32-2.onnx', providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
 
 input_name = session.get_inputs()[0].name
 input_shape = session.get_inputs()[0].shape

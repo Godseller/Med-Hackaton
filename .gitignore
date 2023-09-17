@@ -1,0 +1,7 @@
+__pycache__/
+test/
+
+*/.vscode/*
+*/.envs
+*.env
+*.onnx
