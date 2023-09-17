@@ -79,6 +79,7 @@ class VideoTransformTrack(MediaStreamTrack):
         self.model_1_outputs = None
         self.model_2_outputs = None
         self.second_model_run = False
+        self.start_predict = False
         self.frame_counter = 0
 
     async def recv(self):
@@ -106,6 +107,7 @@ class VideoTransformTrack(MediaStreamTrack):
                 input_tensor = np.stack(self.tensors_list_1[: window_size], axis=1)[None][None]
                 self.model_1_outputs = session.run(output_names, {input_name: input_tensor.astype(np.float32)})[0]
                 self.tensors_list_1.clear()
+                self.start_predict = True
                 print('Ready first predict', datetime.now())
             
             if len(self.tensors_list_2) == window_size:
@@ -113,9 +115,11 @@ class VideoTransformTrack(MediaStreamTrack):
                 input_tensor = np.stack(self.tensors_list_2[: window_size], axis=1)[None][None]
                 self.model_2_outputs = session.run(output_names, {input_name: input_tensor.astype(np.float32)})[0]
                 self.tensors_list_2.clear()
+                self.start_predict = True
                 print('Ready second predict', datetime.now())
 
-            if len(self.tensors_list_2) == window_size or len(self.tensors_list_1) == window_size:
+            if self.start_predict:
+                self.start_predict = False
                 print('Run total predict', datetime.now())
                 if self.model_2_outputs and self.model_2_outputs.max() > self.model_1_outputs.max():
                     outputs = self.model_2_outputs
