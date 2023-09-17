@@ -76,6 +76,8 @@ class VideoTransformTrack(MediaStreamTrack):
         self.track = track
         self.tensors_list_1 = []
         self.tensors_list_2 = []
+        self.model_1_outputs = None
+        self.model_2_outputs = None
         self.second_model_run = False
         self.frame_counter = 0
 
@@ -113,11 +115,12 @@ class VideoTransformTrack(MediaStreamTrack):
                 self.tensors_list_2.clear()
                 print('Ready second predict', datetime.now())
 
+            if len(self.tensors_list_2) == window_size or len(self.tensors_list_1) == window_size:
                 print('Run total predict', datetime.now())
-                if self.model_1_outputs.max() > self.model_2_outputs.max():
-                    outputs = self.model_1_outputs 
-                else:
+                if self.model_2_outputs and self.model_2_outputs.max() > self.model_1_outputs.max():
                     outputs = self.model_2_outputs
+                else:
+                    outputs = self.model_1_outputs
                 
                 gloss = str(classes[outputs.argmax()])
                 if outputs.max() > threshold:
@@ -126,7 +129,7 @@ class VideoTransformTrack(MediaStreamTrack):
                     print('Ready total predict', datetime.now())
                 else:
                     await manager.broadcast('---')
-                    print(f'no word')
+                    print('no word')
                     print('Ready total predict', datetime.now())
             
             if self.frame_counter > frame_interval * frame_waiting:
